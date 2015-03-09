@@ -1,17 +1,37 @@
 package com.mobilecomputing.mandarandash.activityrecongnition;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements View.OnClickListener{
 
+    private DataCollectorService dataCollectorService;
+    private Button buttonBind,buttonUnBind;
+    private TextView textView;
+    private Boolean isBound;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        buttonBind = (Button)findViewById(R.id.buttonBind);
+        buttonUnBind = (Button)findViewById(R.id.buttonUnBind);
+        textView = (TextView)findViewById(R.id.textView);
+        isBound = false;
+
+        buttonBind.setOnClickListener(this);
+        buttonUnBind.setOnClickListener(this);
     }
 
 
@@ -36,4 +56,50 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+    }
+
+    @Override
+    public void onClick(View v) {
+
+        switch (v.getId()){
+            case R.id.buttonBind:
+                Log.e("Button clicked...Binding Service","Mandar");
+                Intent intent = new Intent(this,DataCollectorService.class);
+                bindService(intent,serviceConnection, Context.BIND_AUTO_CREATE);
+                break;
+            case R.id.buttonUnBind:
+                if(isBound){
+                    unbindService(serviceConnection);
+                    isBound = false;
+                }
+
+                break;
+        }
+
+    }
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            DataCollectorService.LocalBinder localBinder = (DataCollectorService.LocalBinder) service;
+            dataCollectorService = localBinder.getService();
+            isBound = true;
+            //Set Text view
+            Log.e("Connecetd","Mandar");
+            textView.setText(dataCollectorService.test_method());
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+
+        }
+    };
+
 }
