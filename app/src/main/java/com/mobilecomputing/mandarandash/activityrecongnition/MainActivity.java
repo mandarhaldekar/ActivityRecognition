@@ -87,8 +87,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             case R.id.buttonGetData:
                 if(isBound){
                     dataCollectorService.startSensors();
+
                     final float data[] = dataCollectorService.getSensorData();
-                    myHandler.post(new Runnable(){
+                    myHandler.post(new Runnable() {
 
                         @Override
                         public void run() {
