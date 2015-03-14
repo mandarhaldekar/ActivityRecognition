@@ -54,6 +54,14 @@
         android:layout_alignRight="@+id/buttonBind"
         android:layout_alignEnd="@+id/buttonBind" />
 
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/editTextM"
+        android:layout_below="@+id/editTextZ"
+        android:layout_alignRight="@+id/buttonBind"
+        android:layout_alignEnd="@+id/buttonBind" />
+
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
