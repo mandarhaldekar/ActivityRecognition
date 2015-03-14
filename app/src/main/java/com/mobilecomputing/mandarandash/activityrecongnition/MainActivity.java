@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,6 +16,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.ArrayList;
 
 
 public class MainActivity extends ActionBarActivity implements View.OnClickListener{
@@ -22,7 +26,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     private DataCollectorService dataCollectorService;
     private Button buttonBind,buttonUnBind;
     private TextView textView;
-    private EditText editTextX,editTextY,editTextZ;
+    private EditText editTextX,editTextY,editTextZ,editTextM;
     private Boolean isBound;
     private Button buttonGetData;
     private Handler myHandler;
@@ -39,6 +43,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         editTextX = (EditText)findViewById(R.id.editTextX);
         editTextY = (EditText)findViewById(R.id.editTextY);
         editTextZ = (EditText)findViewById(R.id.editTextZ);
+        editTextM = (EditText)findViewById(R.id.editTextM);
         isBound = false;
 
         buttonBind.setOnClickListener(this);
@@ -86,18 +91,66 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                 break;
             case R.id.buttonGetData:
                 if(isBound){
-                    dataCollectorService.startSensors();
 
-                    final float data[] = dataCollectorService.getSensorData();
-                    myHandler.post(new Runnable() {
+                    myHandler = new Handler(){
 
                         @Override
-                        public void run() {
-                            editTextX.setText(Float.toString(data[0]));
-                            editTextY.setText(Float.toString(data[1]));
-                            editTextZ.setText(Float.toString(data[2]));
+                        public void handleMessage(Message msg) {
+                            // TODO Auto-generated method stub
+                            super.handleMessage(msg);
+                            if(msg != null) {
+                                Bundle bundle = msg.getData();
+                                float[] data = bundle.getFloatArray("data");
+                                editTextX.setText(Float.toString(data[0]));
+                                editTextY.setText(Float.toString(data[1]));
+                                editTextZ.setText(Float.toString(data[2]));
+                                editTextM.setText(Float.toString(data[3]));
+//                            Toast.makeText(protectionService.this, "5 secs has passed", Toast.LENGTH_SHORT).show();
+                            }
                         }
-                    });
+
+                    };
+
+                    new Thread(new Runnable(){
+                        public void run() {
+                            // TODO Auto-generated method stub
+                            while(true)
+                            {
+                                try {
+                                    Thread.sleep(500);
+                                    Message msg =  new Message();
+                                    Bundle bundle = new Bundle();
+                                    float data[] = dataCollectorService.getSensorData();
+
+                                    bundle.putFloatArray("data",data);
+                                    msg.setData(bundle);
+                                    myHandler.sendMessage(msg);
+
+
+                                } catch (InterruptedException e) {
+                                    // TODO Auto-generated catch block
+                                    e.printStackTrace();
+                                }
+
+                            }
+
+                        }
+                    }).start();
+//                        myHandler.post(new Runnable() {
+//
+//                            @Override
+//                            public void run() {
+//
+//                                for (int i=0;i<10000;i++) {
+//                                    float data[] = dataCollectorService.getSensorData();
+////                                editTextX.setText(data.get(i).getX());
+//                                    editTextX.setText(Float.toString(data[0]));
+//                                    editTextY.setText(Float.toString(data[1]));
+//                                    editTextZ.setText(Float.toString(data[2]));
+//                                    myHandler.postDelayed(this,1000);
+//                                }
+//                            }
+//                        });
 
                 }
                 break;
@@ -121,7 +174,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             isBound = true;
             //Set Text view
             Log.d("Connecetd","Mandar");
+            dataCollectorService.startSensors();
             textView.setText(dataCollectorService.test_method());
+
 
         }
 
