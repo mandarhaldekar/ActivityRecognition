@@ -7,15 +7,25 @@ public class SensorDataModel {
     private float x;
     private float y;
     private float z;
+    private float magnitude;
+
+    public float getMagnitude() {
+        return magnitude;
+    }
+
+    public void setMagnitude(float magnitude) {
+        this.magnitude = magnitude;
+    }
 
     public float getX() {
         return x;
     }
 
-    public SensorDataModel(float x, float y, float z) {
+    public SensorDataModel(float x, float y, float z, float magnitude) {
         this.x = x;
         this.y = y;
         this.z = z;
+        this.magnitude = magnitude;
     }
 
     public void setX(float x) {
