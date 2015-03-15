@@ -8,6 +8,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -16,7 +17,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.security.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -36,6 +44,7 @@ public class DataCollectorService extends Service implements SensorEventListener
     private long timeOutInterval;
     private ArrayList<ActivityRecord> activityRecordArrayList;
     private Integer count; //To count number of samples in one INTERVAL
+    private File file;
 
     public DataCollectorService() {
 
@@ -145,7 +154,7 @@ public class DataCollectorService extends Service implements SensorEventListener
         int i;
         int numberOfSamples = 0;
         int isWalking = 0;
-        int lastAcitivity_count_threshold = (int) ((count_activity / INTERVAL) * 5 * 1000);
+        int lastAcitivity_count_threshold = (int) ((count_activity / INTERVAL) * 10 * 1000);
         for (i=accelerometer_data_temp.size()-1; i>=0 ; i--) {
 
             if ((accelerometer_data_temp.get(i).getMagnitude()) > 0.5f)
@@ -158,10 +167,11 @@ public class DataCollectorService extends Service implements SensorEventListener
             {
                 final Integer mysamples=numberOfSamples;
                 //Add walking activity to the data structure
-                if (numberOfSamples > ((count_activity / INTERVAL) * 5 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
+                if (numberOfSamples > ((count_activity / INTERVAL) * 10 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
                 {  //TO BE tested
                     isWalking = 1;
                     ActivityRecord obj = new ActivityRecord(new Date(lastMilliSeconds + i * 1000), "Walking");
+                    write_to_file(obj);
                     activityRecordArrayList.add(obj);
                     myHandler.post(new Runnable() {
                         @Override
@@ -206,9 +216,10 @@ public class DataCollectorService extends Service implements SensorEventListener
         if (numberOfSamplesY > numberOfSamplesZ) {
 
 
-            if (numberOfSamplesY > (count_activity / INTERVAL * 5 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
+            if (numberOfSamplesY > (count_activity / INTERVAL * 10 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
             {  //TO BE tested
                 ActivityRecord obj = new ActivityRecord(new Date(lastMilliSeconds + i * 1000), "Sitting");
+                write_to_file(obj);
                 activityRecordArrayList.add(obj);
                 myHandler.post(new Runnable() {
                     @Override
@@ -224,9 +235,10 @@ public class DataCollectorService extends Service implements SensorEventListener
         }
         else {
             //Add walking activity to the data structure
-            if (numberOfSamplesZ > ((count_activity / INTERVAL) * 5 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
+            if (numberOfSamplesZ > ((count_activity / INTERVAL) * 10 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
             {  //TO BE tested
                 ActivityRecord obj = new ActivityRecord(new Date(lastMilliSeconds + i * 1000), "Sleeping");
+                write_to_file(obj);
                 activityRecordArrayList.add(obj);
                 myHandler.post(new Runnable() {
                     @Override
@@ -267,7 +279,68 @@ public class DataCollectorService extends Service implements SensorEventListener
         }
 
     }
+    public void initExternalStorage(){
+        File sdDir;
+        String state = Environment.getExternalStorageState();
 
+        boolean mExternalStorageAvailable = false;
+        boolean mExternalStorageWriteable = false;
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            // Can read and write the media
+            mExternalStorageAvailable = mExternalStorageWriteable = true;
+        } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            // Can only read the media
+            mExternalStorageAvailable = true;
+            mExternalStorageWriteable = false;
+        } else {
+            // Can't read or write
+            mExternalStorageAvailable = mExternalStorageWriteable = false;
+        }
+
+        sdDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        //sdDir=this.getExternalFilesDir();
+        File dir = new File (sdDir.getAbsolutePath() + "/project1");
+        Log.d("FILE_PATH", sdDir.getAbsolutePath().toString());
+        dir.mkdirs();
+        file = new File(dir, "myData.txt");
+        FileWriter fw = null;
+        try {
+            fw = new FileWriter(file.getPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            try {
+                fw.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    public void write_to_file(ActivityRecord activityRecordObj){
+
+
+        try {
+
+            FileWriter fw = new FileWriter(file.getPath(),true);
+            SimpleDateFormat localDateFormat = new SimpleDateFormat("HH:mm:ss");
+            String time = localDateFormat.format(activityRecordObj.getTimeStamp());
+            fw.write(time + " : " + activityRecordObj.getActivity()+"\n" );
+            fw.flush();
+            fw.close();
+
+            Log.e("WRITING_TOFILE","written to file");
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            Log.i("File_Not_Found", "******* File not found. Did you" +
+                    " add a WRITE_EXTERNAL_STORAGE permission to the   manifest?");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+//        return new File(sdDir, "yourdirectoryname");
+
+    }
     public String test_method(){
         return "JUNK";
     }
@@ -293,6 +366,8 @@ public class DataCollectorService extends Service implements SensorEventListener
         unfiltered_accelerometer_data = new ArrayList<SensorDataModel>();
         activityRecordArrayList = new ArrayList<ActivityRecord>();
         count = 0;
+        initExternalStorage();
+
     }
 
     @Override
