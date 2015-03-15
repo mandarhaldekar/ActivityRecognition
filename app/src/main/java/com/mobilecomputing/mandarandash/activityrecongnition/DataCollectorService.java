@@ -167,67 +167,23 @@ public class DataCollectorService extends Service implements SensorEventListener
         if(numberofSamplesWalking >= numberofSamplesSleeping && numberofSamplesWalking >= numberofSamplesSitting)
         {
             //walking
-            StringBuffer stringBuffer = new StringBuffer();
-            stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
-            ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Walking");
-            write_to_file(obj);
-            activityRecordArrayList.add(obj);
-            myHandler.post(new Runnable() {
-                @Override
-                public void run() {
-
-                    //Log.e("Counts",numberOfSamples.toString());
-
-                    Toast.makeText(getApplicationContext(), "Wrote activity Walking", Toast.LENGTH_LONG).show();
-                }
-            });
-
-
+            storeActivity("Walking",lastMilliSeconds);
         }
         else if(numberofSamplesSitting >= numberofSamplesWalking && numberofSamplesSitting >= numberofSamplesSleeping)
         {
             //sitting
-            //walking
-            StringBuffer stringBuffer = new StringBuffer();
-            stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
-            ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Sitting");
-            write_to_file(obj);
-            activityRecordArrayList.add(obj);
-            myHandler.post(new Runnable() {
-                @Override
-                public void run() {
-
-                    //Log.e("Counts",numberOfSamples.toString());
-
-                    Toast.makeText(getApplicationContext(), "Wrote activity Sitting", Toast.LENGTH_LONG).show();
-                }
-            });
-
-        } else if(numberofSamplesSleeping >= numberofSamplesWalking && numberofSamplesSleeping >= numberofSamplesWalking){
+            storeActivity("Sitting",lastMilliSeconds);
+        } else if(numberofSamplesSleeping >= numberofSamplesWalking && numberofSamplesSleeping >= numberofSamplesWalking) {
             //sleeping
-            //walking
-            StringBuffer stringBuffer = new StringBuffer();
-            stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
-            ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Sleeping");
-            write_to_file(obj);
-            activityRecordArrayList.add(obj);
-            myHandler.post(new Runnable() {
-                @Override
-                public void run() {
-
-                    //Log.e("Counts",numberOfSamples.toString());
-
-                    Toast.makeText(getApplicationContext(), "Wrote activity Sleeping", Toast.LENGTH_LONG).show();
-                }
-            });
+            storeActivity("Sleeping", lastMilliSeconds);
         }
 
     }
-    public void storeActivity(String activity,long lastMilliSeconds){
+    public void storeActivity(final String activity,long lastMilliSeconds){
         //walking
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
-        ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Sitting");
+        ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), activity);
         write_to_file(obj);
         activityRecordArrayList.add(obj);
         myHandler.post(new Runnable() {
@@ -236,7 +192,7 @@ public class DataCollectorService extends Service implements SensorEventListener
 
                 //Log.e("Counts",numberOfSamples.toString());
 
-                Toast.makeText(getApplicationContext(), "Wrote activity Sitting", Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "Wrote activity "+ activity, Toast.LENGTH_LONG).show();
             }
         });
 
