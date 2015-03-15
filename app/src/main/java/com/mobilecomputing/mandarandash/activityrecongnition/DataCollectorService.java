@@ -128,13 +128,11 @@ public class DataCollectorService extends Service implements SensorEventListener
 
     }
 
-    private void convertDateToTimestamp(Date date){
-        java.util.Date utilDate = new java.util.Date();
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(utilDate);
-        cal.set(Calendar.MILLISECOND, 0);
-        System.out.println(new java.sql.Timestamp(utilDate.getTime()));
-        System.out.println(new java.sql.Timestamp(cal.getTimeInMillis()));
+    private String convertDateToString(long millisec){
+        Date date = new Date(millisec);
+        SimpleDateFormat localDateFormat = new SimpleDateFormat("HH:mm:ss");
+        String time = localDateFormat.format(date);
+        return time;
     }
 
 
@@ -148,8 +146,103 @@ public class DataCollectorService extends Service implements SensorEventListener
         myHandler.sendMessage(msg);
     }
 
+    public void detectActivity(final long lastMilliSeconds,ArrayList<SensorDataModel> accelerometer_data_temp,ArrayList<SensorDataModel> unfiltered_accelerometer_data_temp,int count_activity){
+
+        int size = accelerometer_data_temp.size();
+        int numberofSamplesWalking = 0;
+        int numberofSamplesSleeping = 0;
+        int numberofSamplesSitting = 0;
+
+        for(int i=0;i<size;i++)
+        {
+            if(accelerometer_data_temp.get(i).getMagnitude() > 0.5f)
+                numberofSamplesWalking++;
+            else{
+                if(unfiltered_accelerometer_data_temp.get(i).getY() > 7.5f)
+                    numberofSamplesSitting++;
+                else if(unfiltered_accelerometer_data_temp.get(i).getZ() > 7.5f)
+                    numberofSamplesSleeping++;
+            }
+        }
+        if(numberofSamplesWalking >= numberofSamplesSleeping && numberofSamplesWalking >= numberofSamplesSitting)
+        {
+            //walking
+            StringBuffer stringBuffer = new StringBuffer();
+            stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
+            ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Walking");
+            write_to_file(obj);
+            activityRecordArrayList.add(obj);
+            myHandler.post(new Runnable() {
+                @Override
+                public void run() {
+
+                    //Log.e("Counts",numberOfSamples.toString());
+
+                    Toast.makeText(getApplicationContext(), "Wrote activity Walking", Toast.LENGTH_LONG).show();
+                }
+            });
 
 
+        }
+        else if(numberofSamplesSitting >= numberofSamplesWalking && numberofSamplesSitting >= numberofSamplesSleeping)
+        {
+            //sitting
+            //walking
+            StringBuffer stringBuffer = new StringBuffer();
+            stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
+            ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Sitting");
+            write_to_file(obj);
+            activityRecordArrayList.add(obj);
+            myHandler.post(new Runnable() {
+                @Override
+                public void run() {
+
+                    //Log.e("Counts",numberOfSamples.toString());
+
+                    Toast.makeText(getApplicationContext(), "Wrote activity Sitting", Toast.LENGTH_LONG).show();
+                }
+            });
+
+        } else if(numberofSamplesSleeping >= numberofSamplesWalking && numberofSamplesSleeping >= numberofSamplesWalking){
+            //sleeping
+            //walking
+            StringBuffer stringBuffer = new StringBuffer();
+            stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
+            ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Sleeping");
+            write_to_file(obj);
+            activityRecordArrayList.add(obj);
+            myHandler.post(new Runnable() {
+                @Override
+                public void run() {
+
+                    //Log.e("Counts",numberOfSamples.toString());
+
+                    Toast.makeText(getApplicationContext(), "Wrote activity Sleeping", Toast.LENGTH_LONG).show();
+                }
+            });
+        }
+
+    }
+    public void storeActivity(String activity,long lastMilliSeconds){
+        //walking
+        StringBuffer stringBuffer = new StringBuffer();
+        stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
+        ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), "Sitting");
+        write_to_file(obj);
+        activityRecordArrayList.add(obj);
+        myHandler.post(new Runnable() {
+            @Override
+            public void run() {
+
+                //Log.e("Counts",numberOfSamples.toString());
+
+                Toast.makeText(getApplicationContext(), "Wrote activity Sitting", Toast.LENGTH_LONG).show();
+            }
+        });
+
+
+    }
+/*
     public String detectActivity(long lastMilliSeconds,ArrayList<SensorDataModel> accelerometer_data_temp,ArrayList<SensorDataModel> unfiltered_accelerometer_data_temp,int count_activity){
         int i;
         int numberOfSamples = 0;
@@ -266,6 +359,7 @@ public class DataCollectorService extends Service implements SensorEventListener
 
         return "Done";
     }
+    */
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
@@ -322,23 +416,20 @@ public class DataCollectorService extends Service implements SensorEventListener
         try {
 
             FileWriter fw = new FileWriter(file.getPath(),true);
-            SimpleDateFormat localDateFormat = new SimpleDateFormat("HH:mm:ss");
-            String time = localDateFormat.format(activityRecordObj.getTimeStamp());
-            fw.write(time + " : " + activityRecordObj.getActivity()+"\n" );
+            fw.write(activityRecordObj.getTimeStamp() + "  " + activityRecordObj.getActivity()+"\n" );
             fw.flush();
             fw.close();
 
             Log.e("WRITING_TOFILE","written to file");
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-            Log.i("File_Not_Found", "******* File not found. Did you" +
-                    " add a WRITE_EXTERNAL_STORAGE permission to the   manifest?");
+            Log.i("File_Not_Found", "File not found. Add permissions if not added");
         } catch (IOException e) {
             e.printStackTrace();
         }catch (Exception e) {
             e.printStackTrace();
         }
-//        return new File(sdDir, "yourdirectoryname");
+
 
     }
     public String test_method(){
