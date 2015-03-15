@@ -32,9 +32,10 @@ public class DataCollectorService extends Service implements SensorEventListener
     private Handler myHandler = new Handler();
     private float sensorData[],gravity[],linear_acceleration[];
     private ArrayList<SensorDataModel> accelerometer_data; //This will hold accelerometer data
+    private ArrayList<SensorDataModel> unfiltered_accelerometer_data; //This will hold accelerometer data
     private long timeOutInterval;
     private ArrayList<ActivityRecord> activityRecordArrayList;
-    private Integer count=0;
+    private Integer count; //To count number of samples in one INTERVAL
 
     public DataCollectorService() {
 
@@ -55,14 +56,20 @@ public class DataCollectorService extends Service implements SensorEventListener
                 /**
                  * TO-DO: Collect data continuously and at the end of two min interval, call the algorithm to detect activity
                  */
-                count++;
+
                 if (timeOutInterval > System.currentTimeMillis()) {
                     //Add reading to the results
+                    count++;
+                   //Unfiltered Data
+                    sensorData[0] = event.values[0];
+                    sensorData[1] = event.values[1];
+                    sensorData[2] = event.values[2];
 
                     //Filtering
                     final float alpha = 0.8f;
 
-                    // Isolate the force of gravity with the low-pass filter.
+
+//                    Isolate the force of gravity with the low-pass filter.
                     gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
                     gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
                     gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
@@ -72,29 +79,36 @@ public class DataCollectorService extends Service implements SensorEventListener
                     linear_acceleration[1] = event.values[1] - gravity[1];
                     linear_acceleration[2] = event.values[2] - gravity[2];
 
+
                     //Magnitude
                     linear_acceleration[3] = (float) Math.sqrt(linear_acceleration[0]*linear_acceleration[0] + linear_acceleration[1]*linear_acceleration[1] + linear_acceleration[2]*linear_acceleration[2]);
 
 
                     SensorDataModel sensorDataModel = new SensorDataModel(linear_acceleration[0],linear_acceleration[1],linear_acceleration[2],linear_acceleration[3]);
+                    SensorDataModel sensorDataModel_unfiltered = new SensorDataModel(sensorData[0],sensorData[1],sensorData[2],0);
 
                     accelerometer_data.add(sensorDataModel);
+                    unfiltered_accelerometer_data.add(sensorDataModel_unfiltered);
 
                 } else {
                     /**
                      * TO-DO: Call activity recognition algorithm here. Pass accelerometer_data arraylist and display activity on Main UI
                      */
-                    detectActivity(timeOutInterval - INTERVAL);
+                    detectActivity(timeOutInterval - INTERVAL,accelerometer_data,unfiltered_accelerometer_data,count);
                     accelerometer_data = new ArrayList<SensorDataModel>();
+                    unfiltered_accelerometer_data = new ArrayList<SensorDataModel>();
                     timeOutInterval = System.currentTimeMillis() + INTERVAL;
+
                     myHandler.post(new Runnable() {
                         @Override
                         public void run() {
 
 
                             Toast.makeText(getApplicationContext(), "Returning sensor data:"+count.toString(), Toast.LENGTH_LONG).show();
+                            count = 0;
                         }
                     });
+
                 }
             }
 
@@ -127,11 +141,14 @@ public class DataCollectorService extends Service implements SensorEventListener
 
 
 
-    public String detectActivity(long lastMilliSeconds){
+    public String detectActivity(long lastMilliSeconds,ArrayList<SensorDataModel> accelerometer_data_temp,ArrayList<SensorDataModel> unfiltered_accelerometer_data_temp,int count_activity){
         int i;
         int numberOfSamples = 0;
-        for (i=accelerometer_data.size()-1; i>=0 ; i--) {
-            if (accelerometer_data.get(i).getMagnitude() > 0.3)
+        int isWalking = 0;
+        int lastAcitivity_count_threshold = (int) ((count_activity / INTERVAL) * 5 * 1000);
+        for (i=accelerometer_data_temp.size()-1; i>=0 ; i--) {
+
+            if ((accelerometer_data_temp.get(i).getMagnitude()) > 0.5f)
             {
                 numberOfSamples++;
                 continue;
@@ -139,19 +156,25 @@ public class DataCollectorService extends Service implements SensorEventListener
             }
             else
             {
+                final Integer mysamples=numberOfSamples;
                 //Add walking activity to the data structure
-                if (numberOfSamples > 5*5*10) {  //TO BE tested
+                if (numberOfSamples > ((count_activity / INTERVAL) * 5 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
+                {  //TO BE tested
+                    isWalking = 1;
                     ActivityRecord obj = new ActivityRecord(new Date(lastMilliSeconds + i * 1000), "Walking");
                     activityRecordArrayList.add(obj);
                     myHandler.post(new Runnable() {
                         @Override
                         public void run() {
 
-
-                            Toast.makeText(getApplicationContext(), "Wrote activity walking", Toast.LENGTH_LONG).show();
+                            //Log.e("Counts",numberOfSamples.toString());
+                            Toast.makeText(getApplicationContext(), "Wrote activity walking"+mysamples.toString(), Toast.LENGTH_LONG).show();
                         }
                     });
+//                    return "walking";
+
                     break;
+
                 }
                 numberOfSamples = 0; //If number of samples are not enough to detect that activity is "Walking"
 
@@ -159,6 +182,74 @@ public class DataCollectorService extends Service implements SensorEventListener
 
 
         }
+        if(isWalking == 1)
+            return "Walking";
+        i = 0;
+        int numberOfSamplesY = 0;
+        int numberOfSamplesZ = 0;
+        for (i=unfiltered_accelerometer_data_temp.size()-1; i>=0 ; i--) {
+
+            if (unfiltered_accelerometer_data_temp.get(i).getY() > 7.5f) {
+                numberOfSamplesY++;
+                continue;
+
+            }
+            if (unfiltered_accelerometer_data_temp.get(i).getZ() > 7.5f) {
+                numberOfSamplesZ++;
+                continue;
+
+            }
+        }
+//            else
+//            {
+                //Add walking activity to the data structure
+        if (numberOfSamplesY > numberOfSamplesZ) {
+
+
+            if (numberOfSamplesY > (count_activity / INTERVAL * 5 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
+            {  //TO BE tested
+                ActivityRecord obj = new ActivityRecord(new Date(lastMilliSeconds + i * 1000), "Sitting");
+                activityRecordArrayList.add(obj);
+                myHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+
+
+                        Toast.makeText(getApplicationContext(), "Wrote activity sitting", Toast.LENGTH_LONG).show();
+                    }
+                });
+                return "sitting";
+//                    break;
+            }
+        }
+        else {
+            //Add walking activity to the data structure
+            if (numberOfSamplesZ > ((count_activity / INTERVAL) * 5 * 1000)) // Number of sample/sec = (count /INTERVAL in ms ) * 5 (as we want last activity for 5 sec) * 1000 (ms to s)
+            {  //TO BE tested
+                ActivityRecord obj = new ActivityRecord(new Date(lastMilliSeconds + i * 1000), "Sleeping");
+                activityRecordArrayList.add(obj);
+                myHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+
+
+                        Toast.makeText(getApplicationContext(), "Wrote activity Sleeping", Toast.LENGTH_LONG).show();
+                    }
+                });
+                return "sleeping";
+//                    break;
+            }
+        }
+
+                numberOfSamplesZ = 0; //If number of samples are not enough to detect that activity is "Walking"
+                numberOfSamplesY = 0; //If number of samples are not enough to detect that activity is "Walking"
+
+
+
+
+
+
+
         //Write to SD Card
 
         return "Done";
@@ -199,8 +290,9 @@ public class DataCollectorService extends Service implements SensorEventListener
         linear_acceleration = new float[4]; //Fourth one for magnitude
         timeOutInterval = System.currentTimeMillis() + INTERVAL; //Half minute. Make it two later
         accelerometer_data = new ArrayList<SensorDataModel>();
+        unfiltered_accelerometer_data = new ArrayList<SensorDataModel>();
         activityRecordArrayList = new ArrayList<ActivityRecord>();
-
+        count = 0;
     }
 
     @Override
