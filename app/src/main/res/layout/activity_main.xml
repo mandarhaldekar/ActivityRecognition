@@ -11,7 +11,8 @@
         android:text="Start Service"
         android:id="@+id/buttonBind"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -25,17 +26,19 @@
         android:layout_height="wrap_content"
         android:text="Unbind Service"
         android:id="@+id/buttonUnBind"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
 
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/editTextX"
-        android:layout_below="@+id/buttonBind"
         android:layout_alignRight="@+id/buttonBind"
-        android:layout_alignEnd="@+id/buttonBind"
-        android:layout_marginTop="45dp" />
+        android:layout_alignEnd="@+id/editTextY"
+        android:layout_below="@+id/buttonBind"
+        android:layout_alignLeft="@+id/buttonBind"
+        android:layout_alignStart="@+id/editTextY" />
 
     <EditText
         android:layout_width="wrap_content"
@@ -67,6 +70,14 @@
         android:layout_height="wrap_content"
         android:text="Get Data"
         android:id="@+id/buttonGetData"
-        android:layout_above="@+id/buttonUnBind"
+        android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
+
+    <ListView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/listActivityView"
+        android:layout_alignLeft="@+id/buttonGetData"
+        android:layout_alignRight="@+id/buttonUnBind"
+         />
 </RelativeLayout>
