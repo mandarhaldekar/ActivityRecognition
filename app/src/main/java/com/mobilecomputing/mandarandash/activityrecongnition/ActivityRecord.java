@@ -6,11 +6,11 @@ import java.util.Date;
  * Created by Mandar on 3/14/2015.
  */
 public class ActivityRecord {
-    public Date getTimeStamp() {
+    public String getTimeStamp() {
         return timeStamp;
     }
 
-    public void setTimeStamp(Date timeStamp) {
+    public void setTimeStamp(String timeStamp) {
         this.timeStamp = timeStamp;
     }
 
@@ -22,11 +22,11 @@ public class ActivityRecord {
         this.activity = activity;
     }
 
-    public ActivityRecord(Date timeStamp, String activity) {
+    public ActivityRecord(String timeStamp, String activity) {
         this.timeStamp = timeStamp;
         this.activity = activity;
     }
 
-    private Date timeStamp;
+    private String timeStamp;
     private String activity;
 }
