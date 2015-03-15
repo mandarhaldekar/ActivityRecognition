@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -13,16 +14,24 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 
 public class MainActivity extends ActionBarActivity implements View.OnClickListener{
 
+    private static final String FILEPATH = "" ;
     private DataCollectorService dataCollectorService;
     private Button buttonBind,buttonUnBind;
     private TextView textView;
@@ -30,6 +39,8 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     private Boolean isBound;
     private Button buttonGetData;
     private Handler myHandler;
+    private ArrayList<String> listOfRecords;
+    private ListView listActivityView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,11 +55,71 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         editTextY = (EditText)findViewById(R.id.editTextY);
         editTextZ = (EditText)findViewById(R.id.editTextZ);
         editTextM = (EditText)findViewById(R.id.editTextM);
+        listActivityView = (ListView)findViewById(R.id.listActivityView);
         isBound = false;
 
         buttonBind.setOnClickListener(this);
         buttonUnBind.setOnClickListener(this);
         buttonGetData.setOnClickListener(this);
+        listOfRecords = new ArrayList<String>();
+        readActivityFile(FILEPATH);
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,android.R.id.text1,listOfRecords);
+        listActivityView.setAdapter(adapter);
+
+
+    }
+
+    private void readActivityFile(String filePath) {
+        File sdDir;
+        String state = Environment.getExternalStorageState();
+        boolean mExternalStorageAvailable = false;
+        boolean mExternalStorageWriteable = false;
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            // Can read and write the media
+            mExternalStorageAvailable = mExternalStorageWriteable = true;
+        } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            // Can only read the media
+            mExternalStorageAvailable = true;
+            mExternalStorageWriteable = false;
+        } else {
+            // Can't read or write
+            mExternalStorageAvailable = mExternalStorageWriteable = false;
+        }
+
+        sdDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+        //sdDir=this.getExternalFilesDir();
+        File dir = new File (sdDir.getAbsolutePath() + "/project1");
+        Log.d("FILE_PATH", sdDir.getAbsolutePath().toString());
+        dir.mkdirs();
+        File file = new File(dir, "myData.txt");
+        Scanner in = null;
+        String record;
+
+        try
+        {
+            in = new Scanner(new FileReader(file.getPath()));
+            while(in.hasNextLine())
+            {
+                record = in.nextLine();
+                listOfRecords.add(0,record);
+                if(listOfRecords.size() > 10)
+                {
+                    //remove last as we want list to hold most recent 10 activities
+                    listOfRecords.remove(listOfRecords.size()-1);
+
+                }
+
+                //Show on UI
+            }
+        }
+
+        catch(Exception e){
+            e.printStackTrace();
+        }finally {
+            if(in != null)
+            in.close();
+        }
+
     }
 
 

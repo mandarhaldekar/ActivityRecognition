@@ -158,9 +158,9 @@ public class DataCollectorService extends Service implements SensorEventListener
             if(accelerometer_data_temp.get(i).getMagnitude() > 0.5f)
                 numberofSamplesWalking++;
             else{
-                if(unfiltered_accelerometer_data_temp.get(i).getY() > 7.5f)
+                if(Math.abs(unfiltered_accelerometer_data_temp.get(i).getY()) > 7.5f)
                     numberofSamplesSitting++;
-                else if(unfiltered_accelerometer_data_temp.get(i).getZ() > 7.5f)
+                else if(Math.abs(unfiltered_accelerometer_data_temp.get(i).getZ()) > 7.5f)
                     numberofSamplesSleeping++;
             }
         }
@@ -416,6 +416,7 @@ public class DataCollectorService extends Service implements SensorEventListener
         initExternalStorage();
 
     }
+
 
     @Override
     public void onDestroy() {
