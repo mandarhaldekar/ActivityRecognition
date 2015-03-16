@@ -27,6 +27,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MainActivity extends ActionBarActivity implements View.OnClickListener{
@@ -41,6 +43,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     private Handler myHandler;
     private ArrayList<String> listOfRecords;
     private ListView listActivityView;
+    private ArrayAdapter<String> adapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +53,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         buttonUnBind = (Button)findViewById(R.id.buttonUnBind);
         buttonGetData = (Button)findViewById(R.id.buttonGetData);
         myHandler = new Handler();
-        textView = (TextView)findViewById(R.id.textView);
+
         editTextX = (EditText)findViewById(R.id.editTextX);
         editTextY = (EditText)findViewById(R.id.editTextY);
         editTextZ = (EditText)findViewById(R.id.editTextZ);
@@ -63,7 +66,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         buttonGetData.setOnClickListener(this);
         listOfRecords = new ArrayList<String>();
         readActivityFile(FILEPATH);
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,android.R.id.text1,listOfRecords);
+        adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,android.R.id.text1,listOfRecords);
         listActivityView.setAdapter(adapter);
 
 
@@ -172,6 +175,9 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                             if(msg != null) {
                                 Bundle bundle = msg.getData();
                                 float[] data = bundle.getFloatArray("data");
+//                                String activityString = bundle.getString("activity");
+//                                listOfRecords.add(0,activityString);
+//                                listActivityView.setAdapter(adapter);
                                 editTextX.setText(Float.toString(data[0]));
                                 editTextY.setText(Float.toString(data[1]));
                                 editTextZ.setText(Float.toString(data[2]));
@@ -181,6 +187,30 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                         }
 
                     };
+                    Timer timer = new Timer();
+                    timer.scheduleAtFixedRate(new TimerTask() {
+
+                        @Override
+                        public void run() {
+                            // Do your task
+                            ActivityRecord activityObj = dataCollectorService.getActivity();
+                            StringBuffer buffer = new StringBuffer();
+                            buffer.append(activityObj.getTimeStamp()).append(" ").append(activityObj.getActivity());
+                            listOfRecords.add(0,buffer.toString());
+                            if(listOfRecords.size() > 10){
+                                listOfRecords.remove(listOfRecords.size() - 1);
+                            }
+                            myHandler.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    listActivityView.setAdapter(adapter);
+                                }
+                            });
+
+
+                        }
+
+                    }, 30*1000, 30*1000);
 
                     new Thread(new Runnable(){
                         public void run() {
@@ -194,6 +224,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
                                     float data[] = dataCollectorService.getSensorData();
 
                                     bundle.putFloatArray("data",data);
+
                                     msg.setData(bundle);
                                     myHandler.sendMessage(msg);
 
@@ -246,7 +277,8 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             //Set Text view
             Log.d("Connecetd","Mandar");
             dataCollectorService.startSensors();
-            textView.setText(dataCollectorService.test_method());
+
+
 
 
         }
