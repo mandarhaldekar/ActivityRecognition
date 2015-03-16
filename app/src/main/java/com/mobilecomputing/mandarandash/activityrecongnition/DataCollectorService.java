@@ -45,6 +45,7 @@ public class DataCollectorService extends Service implements SensorEventListener
     private ArrayList<ActivityRecord> activityRecordArrayList;
     private Integer count; //To count number of samples in one INTERVAL
     private File file;
+    private ActivityRecord currentActivity;
 
     public DataCollectorService() {
 
@@ -184,6 +185,7 @@ public class DataCollectorService extends Service implements SensorEventListener
         StringBuffer stringBuffer = new StringBuffer();
         stringBuffer.append(convertDateToString(lastMilliSeconds)).append( " - ").append(convertDateToString(lastMilliSeconds+INTERVAL));
         ActivityRecord obj = new ActivityRecord(stringBuffer.toString(), activity);
+        currentActivity = obj;
         write_to_file(obj);
         activityRecordArrayList.add(obj);
         myHandler.post(new Runnable() {
@@ -387,6 +389,9 @@ public class DataCollectorService extends Service implements SensorEventListener
         }
 
 
+    }
+    public ActivityRecord getActivity(){
+        return currentActivity;
     }
     public String test_method(){
         return "JUNK";
