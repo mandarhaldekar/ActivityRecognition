@@ -7,6 +7,7 @@ import android.content.ServiceConnection;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -33,17 +34,19 @@ import java.util.TimerTask;
 
 public class MainActivity extends ActionBarActivity implements View.OnClickListener{
 
-    private static final String FILEPATH = "" ;
+
     private DataCollectorService dataCollectorService;
-    private Button buttonBind,buttonUnBind;
+    private Button buttonBind,buttonUnBind,buttonClear;
     private TextView textView;
     private EditText editTextX,editTextY,editTextZ,editTextM;
     private Boolean isBound;
-    private Button buttonGetData;
+    private File file;
     private Handler myHandler;
     private ArrayList<String> listOfRecords;
     private ListView listActivityView;
     private ArrayAdapter<String> adapter;
+    private Timer timer;
+    private Runnable runnable;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,28 +54,29 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         buttonBind = (Button)findViewById(R.id.buttonBind);
         buttonUnBind = (Button)findViewById(R.id.buttonUnBind);
-        buttonGetData = (Button)findViewById(R.id.buttonGetData);
+        buttonClear = (Button)findViewById(R.id.buttonClear);
+//        buttonGetData = (Button)findViewById(R.id.buttonGetData);
         myHandler = new Handler();
 
-        editTextX = (EditText)findViewById(R.id.editTextX);
-        editTextY = (EditText)findViewById(R.id.editTextY);
-        editTextZ = (EditText)findViewById(R.id.editTextZ);
-        editTextM = (EditText)findViewById(R.id.editTextM);
+//        editTextX = (EditText)findViewById(R.id.editTextX);
+//        editTextY = (EditText)findViewById(R.id.editTextY);
+//        editTextZ = (EditText)findViewById(R.id.editTextZ);
+//        editTextM = (EditText)findViewById(R.id.editTextM);
         listActivityView = (ListView)findViewById(R.id.listActivityView);
         isBound = false;
-
+        buttonClear.setOnClickListener(this);
         buttonBind.setOnClickListener(this);
         buttonUnBind.setOnClickListener(this);
-        buttonGetData.setOnClickListener(this);
+//        buttonGetData.setOnClickListener(this);
         listOfRecords = new ArrayList<String>();
-        readActivityFile(FILEPATH);
+        readActivityFile();
         adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,android.R.id.text1,listOfRecords);
         listActivityView.setAdapter(adapter);
 
 
     }
 
-    private void readActivityFile(String filePath) {
+    private void readActivityFile() {
         File sdDir;
         String state = Environment.getExternalStorageState();
         boolean mExternalStorageAvailable = false;
@@ -94,7 +98,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
         File dir = new File (sdDir.getAbsolutePath() + "/project1");
         Log.d("FILE_PATH", sdDir.getAbsolutePath().toString());
         dir.mkdirs();
-        File file = new File(dir, "myData.txt");
+        file = new File(dir, "myData.txt");
         Scanner in = null;
         String record;
 
@@ -151,7 +155,24 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
     @Override
     protected void onPause() {
         super.onPause();
+        if(timer != null)
+            timer.cancel();
 
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        monitorActivity();
+    }
+
+    @Override
+    protected void onDestroy() {
+
+        if(isBound){
+            unbindService(serviceConnection);
+            isBound = false;
+        }
     }
 
     @Override
@@ -159,114 +180,117 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
         switch (v.getId()){
             case R.id.buttonBind:
-                Log.d("Button clicked...Binding Service","Mandar");
+                Log.d("TAG BIND SERVICE","Button clicked...Binding Service");
                 Intent intent = new Intent(this,DataCollectorService.class);
                 bindService(intent,serviceConnection, Context.BIND_AUTO_CREATE);
+                buttonBind.setEnabled(false);
                 break;
-            case R.id.buttonGetData:
-                if(isBound){
 
-                    myHandler = new Handler(){
-
-                        @Override
-                        public void handleMessage(Message msg) {
-                            // TODO Auto-generated method stub
-                            super.handleMessage(msg);
-                            if(msg != null) {
-                                Bundle bundle = msg.getData();
-                                float[] data = bundle.getFloatArray("data");
-//                                String activityString = bundle.getString("activity");
-//                                listOfRecords.add(0,activityString);
-//                                listActivityView.setAdapter(adapter);
-                                editTextX.setText(Float.toString(data[0]));
-                                editTextY.setText(Float.toString(data[1]));
-                                editTextZ.setText(Float.toString(data[2]));
-                                editTextM.setText(Float.toString(data[3]));
-//                            Toast.makeText(protectionService.this, "5 secs has passed", Toast.LENGTH_SHORT).show();
-                            }
-                        }
-
-                    };
-                    Timer timer = new Timer();
-                    timer.scheduleAtFixedRate(new TimerTask() {
-
-                        @Override
-                        public void run() {
-                            // Do your task
-                            ActivityRecord activityObj = dataCollectorService.getActivity();
-                            StringBuffer buffer = new StringBuffer();
-                            buffer.append(activityObj.getTimeStamp()).append(" ").append(activityObj.getActivity());
-                            listOfRecords.add(0,buffer.toString());
-                            if(listOfRecords.size() > 10){
-                                listOfRecords.remove(listOfRecords.size() - 1);
-                            }
-                            myHandler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    listActivityView.setAdapter(adapter);
-                                }
-                            });
-
-
-                        }
-
-                    }, 30*1000, 30*1000);
-
-                    new Thread(new Runnable(){
-                        public void run() {
-                            // TODO Auto-generated method stub
-                            while(true)
-                            {
-                                try {
-                                    Thread.sleep(500);
-                                    Message msg =  new Message();
-                                    Bundle bundle = new Bundle();
-                                    float data[] = dataCollectorService.getSensorData();
-
-                                    bundle.putFloatArray("data",data);
-
-                                    msg.setData(bundle);
-                                    myHandler.sendMessage(msg);
-
-
-                                } catch (InterruptedException e) {
-                                    // TODO Auto-generated catch block
-                                    e.printStackTrace();
-                                }
-
-                            }
-
-                        }
-                    }).start();
-//                        myHandler.post(new Runnable() {
-//
-//                            @Override
-//                            public void run() {
-//
-//                                for (int i=0;i<10000;i++) {
-//                                    float data[] = dataCollectorService.getSensorData();
-////                                editTextX.setText(data.get(i).getX());
-//                                    editTextX.setText(Float.toString(data[0]));
-//                                    editTextY.setText(Float.toString(data[1]));
-//                                    editTextZ.setText(Float.toString(data[2]));
-//                                    myHandler.postDelayed(this,1000);
-//                                }
-//                            }
-//                        });
-
-                }
-                break;
             case R.id.buttonUnBind:
+                buttonBind.setEnabled(true);
+
                 if(isBound){
                     unbindService(serviceConnection);
                     isBound = false;
                 }
+                myHandler.removeCallbacks(runnable);
 
+                break;
+            case R.id.buttonClear:
+                if(file!=null)
+                {
+                    FileWriter fw = null;
+                    try {
+                        fw = new FileWriter(file.getPath());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    finally {
+                        try {
+                            fw.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                }
+                listOfRecords = new ArrayList<String>();
+                adapter = new ArrayAdapter<String>(this,android.R.layout.simple_list_item_1,android.R.id.text1,listOfRecords);
+                listActivityView.setAdapter(adapter);
                 break;
         }
 
     }
 
+    private void monitorActivity() {
+        if(isBound){
+
+            try {
+                Thread.sleep(5*1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            runnable = new Runnable() {
+                @Override
+                public void run() {
+      /* do what you need to do */
+                    Log.e("RUN TAG","RUN EXECUTED");
+                    ActivityRecord activityObj = dataCollectorService.getActivity();
+                    StringBuffer buffer = new StringBuffer();
+                    if (activityObj == null){
+                        myHandler.postDelayed(this, 30*1000);
+                    return;
+                    }
+                    buffer.append(activityObj.getTimeStamp()).append(" ").append(activityObj.getActivity());
+                    if (!listOfRecords.contains(buffer.toString()))
+                    {
+
+
+                        listOfRecords.add(0, buffer.toString());
+                        if (listOfRecords.size() > 10) {
+                            listOfRecords.remove(listOfRecords.size() - 1);
+                        }
+                        Log.e("RUN TAG", "UI UPDATED");
+                        listActivityView.setAdapter(adapter);
+
+                    }
+                    //To schedule again
+                    myHandler.postDelayed(this, 30*1000);
+                }
+            };
+            //First time execution of run
+            myHandler.postDelayed(runnable,30*1000);
+
+/*
+            new Thread(new Runnable(){
+                public void run() {
+                    // TODO Auto-generated method stub
+                    while(true)
+                    {
+                        try {
+                            Thread.sleep(500);
+                            Message msg =  new Message();
+                            Bundle bundle = new Bundle();
+                            float data[] = dataCollectorService.getSensorData();
+
+                            bundle.putFloatArray("data",data);
+
+                            msg.setData(bundle);
+                            myHandler.sendMessage(msg);
+
+
+                        } catch (InterruptedException e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+
+                    }
+
+                }
+            }).start(); */
+
+        }
+    }
     private ServiceConnection serviceConnection = new ServiceConnection() {
 
         @Override
@@ -275,9 +299,10 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
             dataCollectorService = localBinder.getService();
             isBound = true;
             //Set Text view
-            Log.d("Connecetd","Mandar");
-            dataCollectorService.startSensors();
-
+            Log.d("TAG BIND SERVICE","Connected");
+//            dataCollectorService.startSensors();
+//            long currentTime = System.currentTimeMillis();
+            monitorActivity();
 
 
 
@@ -288,5 +313,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
         }
     };
+
+
 
 }

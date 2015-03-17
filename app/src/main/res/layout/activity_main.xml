@@ -8,22 +8,24 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start Service"
+        android:text="Monitor Activity"
         android:id="@+id/buttonBind"
         android:layout_alignParentTop="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+
+        />
 
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Unbind Service"
+        android:text="Stop Monitoring"
         android:id="@+id/buttonUnBind"
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
-
+<!--
     <EditText
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -67,17 +69,31 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true" />
 
+
+        android:divider="#ff70090c"
+        android:dividerHeight="4px"
+
+-->
     <ListView
 
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/listActivityView"
-        android:layout_alignRight="@+id/buttonUnBind"
-        android:layout_below="@+id/buttonUnBind"
-        android:layout_alignLeft="@+id/buttonGetData"
-        android:layout_alignStart="@+id/buttonGetData"
-        android:background="#ffdfd2d6"
-        android:divider="#ff70090c"
-        android:dividerHeight="4px"/>
+        android:background="@drawable/list_view_border"
+        android:alwaysDrawnWithCache="true"
+        android:scrollingCache="true"
+        android:smoothScrollbar="true"
+        android:layout_below="@+id/buttonBind"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/listActivityView"
+        android:text="Clear Activities"
+        android:id="@+id/buttonClear"
+        android:layout_centerHorizontal="true"
+        android:paddingTop="10dip"/>
 
 </RelativeLayout>
