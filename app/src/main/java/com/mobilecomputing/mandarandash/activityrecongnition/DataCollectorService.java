@@ -52,6 +52,12 @@ public class DataCollectorService extends Service implements SensorEventListener
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        startSensors();
+    }
+
+    @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
         return myBinder;
@@ -357,7 +363,7 @@ public class DataCollectorService extends Service implements SensorEventListener
         file = new File(dir, "myData.txt");
         FileWriter fw = null;
         try {
-            fw = new FileWriter(file.getPath());
+            fw = new FileWriter(file.getPath(),true);
         } catch (IOException e) {
             e.printStackTrace();
         }finally {
