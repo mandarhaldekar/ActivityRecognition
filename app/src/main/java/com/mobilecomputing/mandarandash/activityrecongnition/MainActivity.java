@@ -168,7 +168,7 @@ public class MainActivity extends ActionBarActivity implements View.OnClickListe
 
     @Override
     protected void onDestroy() {
-
+        super.onDestroy();
         if(isBound){
             unbindService(serviceConnection);
             isBound = false;
